@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bybit-Style Forex Practice</title>
+  <style>
+  /* Reset & fonts */
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0A0E1A; color: #E1E6EB; height:100vh; display:flex; }
+
+  /* Sidebar */
+  #sidebar {
+    width: 200px; background: #11152E; display:flex; flex-direction:column;
+    padding:20px; gap:12px; box-shadow: 2px 0 8px rgba(0,0,0,0.5);
+  }
+  .nav-btn {
+    background: transparent; border:none; text-align:left; padding:10px;
+    color:#A3A9BF; font-size:1rem; border-radius:6px; cursor:pointer;
+    transition: background .2s, color .2s;
+  }
+  .nav-btn.active, .nav-btn:hover { background:#1F2642; color:#FFFFFF; }
+
+  /* Main content */
+  #main { flex:1; display:flex; flex-direction:column; }
+  #topbar {
+    height:60px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 30px; background:#11152E; box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  }
+  #balance { font-size:1.2rem; font-weight:bold; }
+
+  /* Sections styling */
+  .page { display:none; flex:1; padding:20px; overflow:auto; }
+  .page.active { display:block; }
+
+  /* Trade card style */
+  .trade-card {
+    background:#1C2138; padding:20px; border-radius:10px;
+    max-width:600px; margin:auto; display:flex; flex-direction:column; gap:16px;
+    box-shadow:0 2px 12px rgba(0,0,0,0.5);
+  }
+  .trade-inputs { display:flex; gap:10px; }
+  .trade-inputs select, .trade-inputs input {
+    flex:1; padding:10px; background:#252C48; color:#E1E6EB;
+    border:1px solid #2A324D; border-radius:6px;
+  }
+  .action-btns { display:flex; gap:10px; }
+  .buy-btn { flex:1; background:#07C66D; color:#fff; }
+  .sell-btn { flex:1; background:#EA4C4C; color:#fff; }
+  .action-btns button {
+    padding:12px; border:none; border-radius:6px; font-size:1rem;
+    cursor:pointer;
+  }
+  .action-btns button:hover { opacity:0.9; }
+
+  /* History table */
+  table { width:100%; border-collapse:collapse; margin-top:20px; }
+  table th, table td {
+    padding:12px; border-bottom:1px solid #2A2E45;
+    text-align:left;
+  }
+  table th { color:#8C92A3; font-weight:500; }
+
+  /* Add funds */
+  #fund input, #fund button {
+    width:100%; padding:12px; border-radius:6px;
+    background:#252C48; border:none; color:#E1E6EB;
+    font-size:1rem; margin-top:10px;
+  }
+  #fund button { background:#07C66D; cursor:pointer; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <button class="nav-btn active" data-page="trade">Trade</button>
+    <button class="nav-btn" data-page="history">History</button>
+    <button class="nav-btn" data-page="fund">Add Funds</button>
+  </nav>
+
+  <div id="main">
+    <!-- Top Bar -->
+    <div id="topbar">
+      <span id="balance">Balance: $1000.00</span>
+      <span style="font-size:0.9rem; color:#8C92A3">Demo Mode</span>
+    </div>
+
+    <!-- Trade Page -->
+    <section id="trade" class="page active">
+      <div class="trade-card">
+        <div class="trade-inputs">
+          <select id="pair">
+            <option>EUR/USD</option><option>GBP/USD</option><option>USD/JPY</option>
+          </select>
+          <input type="number" id="amount" placeholder="Amount ($)" />
+        </div>
+        <div class="trade-inputs">
+          <input type="number" id="tp" placeholder="Take Profit ($)" />
+          <input type="number" id="sl" placeholder="Stop Loss ($)" />
+        </div>
+        <div class="action-btns">
+          <button class="buy-btn" onclick="execute('BUY')">Buy</button>
+          <button class="sell-btn" onclick="execute('SELL')">Sell</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section id="history" class="page">
+      <h2>Trade History</h2>
+      <table>
+        <thead><tr><th>Pair</th><th>Action</th><th>Result ($)</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </section>
+
+    <!-- Add Funds -->
+    <section id="fund" class="page">
+      <h2>Add Demo Funds</h2>
+      <input type="number" id="fundAmt" placeholder="Amount to add" />
+      <button onclick="addFunds()">Add Funds</button>
+    </section>
+  </div>
+
+  <script>
+    let balance = 1000;
+    const navBtns = document.querySelectorAll('.nav-btn');
+    navBtns.forEach(btn => btn.onclick = () => {
+      navBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById(btn.dataset.page).classList.add('active');
+    });
+
+    function updateBal() {
+      document.getElementById('balance').textContent = `Balance: $${balance.toFixed(2)}`;
+    }
+
+    function execute(action) {
+      const pair = document.getElementById('pair').value;
+      const amt = parseFloat(document.getElementById('amount').value);
+      const tp = parseFloat(document.getElementById('tp').value);
+      const sl = parseFloat(document.getElementById('sl').value);
+      if (!amt || amt <= 0) return alert('Enter valid amount');
+      if (amt > balance) return alert('Insufficient balance');
+      balance -= amt;
+      const result = (Math.random() < 0.5 ? -sl : tp);
+      balance += amt + result;
+      updateBal();
+      const row = `<tr><td>${pair}</td><td>${action}</td><td>${result>=0?'+':''}${result.toFixed(2)}</td></tr>`;
+      document.getElementById('historyBody').innerHTML += row;
+    }
+
+    function addFunds() {
+      const amt = parseFloat(document.getElementById('fundAmt').value);
+      if (!amt || amt <= 0) return alert('Enter valid amount');
+      balance += amt;
+      updateBal();
+      alert(`Added $${amt.toFixed(2)}`);
+      document.getElementById('fundAmt').value = '';
+    }
+  </script>
+</body>
+</html>
